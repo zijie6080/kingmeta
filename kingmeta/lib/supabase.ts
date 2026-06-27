@@ -1,13 +1,13 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
+function makeClient(url: string, key: string, opts = {}) {
+  if (!url || !url.startsWith('http')) return null
+  try { return createClient(url, key, opts) } catch { return null }
+}
 
-// Client-side (public, RLS enforced)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? supabaseAnonKey
 
-// Server-side (service role, bypasses RLS - use only in API routes)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: { persistSession: false }
-})
+export const supabase = makeClient(supabaseUrl, supabaseAnonKey) as SupabaseClient
+export const supabaseAdmin = makeClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } }) as SupabaseClient
