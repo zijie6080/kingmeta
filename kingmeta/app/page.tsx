@@ -3,6 +3,7 @@ import type { HeroWithStats } from '@/types'
 import { Suspense } from 'react'
 import { supabaseAdmin } from '@/lib/supabase'
 import Link from 'next/link'
+import { HeroAvatar } from '@/components/ui/HeroAvatar'
 import TierBadge from '@/components/heroes/TierBadge'
 import { formatPercent, formatDate } from '@/lib/utils'
 import { Trophy, TrendingUp, Shield, Zap, Calendar, ChevronRight } from 'lucide-react'
@@ -70,11 +71,11 @@ function RankCard({
           <Link key={String(h.hero_id)} href={`/hero/${h.hero_id}`}
             className="flex items-center gap-2.5 group hover:bg-white/[0.04] rounded-lg px-1.5 py-1 transition-colors">
             <span className="text-xs text-gray-600 w-4 font-mono shrink-0">{i + 1}</span>
-            <img
-              src={String(h.avatar_url ?? `https://game.gtimg.cn/images/yxzj/img201606/heroimg/${h.hero_id}/${h.hero_id}.jpg`)}
+            <HeroAvatar
+              src={String(h.avatar_url ?? '')}
               alt={String(h.name ?? '')}
+              heroId={String(h.hero_id ?? '')}
               className="w-7 h-7 rounded-full object-cover ring-1 ring-white/10 group-hover:ring-orange-400/30 transition-all"
-              onError={() => {}}
             />
             <span className="flex-1 text-sm text-gray-300 group-hover:text-white transition-colors truncate">{String(h.name ?? '')}</span>
             <span className="text-sm font-bold shrink-0" style={{ color }}>
