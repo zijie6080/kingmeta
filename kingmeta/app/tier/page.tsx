@@ -26,6 +26,11 @@ const HDR = {
   'Referer': SOURCE,
 }
 
+async function getValidDate() {
+  const { getLatestDate } = await import('@/lib/source')
+  return getLatestDate()
+}
+
 function getYesterday() {
   const d = new Date(); d.setDate(d.getDate() - 1)
   return d.toISOString().split('T')[0]
@@ -35,7 +40,7 @@ interface RawStat { heroId: number; heroName: string; avatarUrl: string; roles: 
 interface RawTier { heroId: number; heroName: string; avatarUrl: string; role: string; trueHeroPowerInRole: number; finalNormalizedTierScore: number; tierInRole: string; rankInRole: number; lowPick: boolean; highBan: boolean }
 
 async function getTierData() {
-  const date = getYesterday()
+  const date = await getValidDate()
   try {
     const [sr, tr] = await Promise.all([
       fetch(`${SOURCE}/api/herostats?date=${date}&gameMode=1`, { headers: HDR, next: { revalidate: 3600 } }),

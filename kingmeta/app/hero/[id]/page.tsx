@@ -17,6 +17,11 @@ const HDR = {
   'Referer': SOURCE,
 }
 
+async function getValidDate() {
+  const { getLatestDate } = await import('@/lib/source')
+  return getLatestDate()
+}
+
 function getYesterday() {
   const d = new Date(); d.setDate(d.getDate() - 1)
   return d.toISOString().split('T')[0]
@@ -54,7 +59,7 @@ interface PeriodData {
 }
 
 async function getPageData(id: string) {
-  const date = getYesterday()
+  const date = await getValidDate()
   const [stats, tierData, equip, bp, behavior, period, trendRes] = await Promise.all([
     sf<Array<{ heroId: number; heroName: string; avatarUrl: string; roles: string; winRate: number; pickRate: number; banRate: number; update: boolean }>>(
       `/api/herostats?date=${date}&gameMode=1`

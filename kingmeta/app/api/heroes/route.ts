@@ -8,6 +8,11 @@ const HEADERS = {
   'Accept': 'application/json',
 }
 
+async function getValidDate() {
+  const { getLatestDate } = await import('@/lib/source')
+  return getLatestDate()
+}
+
 function getYesterday() {
   const d = new Date()
   d.setDate(d.getDate() - 1)
@@ -26,7 +31,7 @@ async function fetchJson<T>(path: string): Promise<T> {
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const role = searchParams.get('role')
-  const date = searchParams.get('date') ?? getYesterday()
+  const date = searchParams.get("date") ?? await getValidDate()
 
   try {
     // 同时拉两个 API
