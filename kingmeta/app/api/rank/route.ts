@@ -1,55 +1,68 @@
 export const dynamic = "force-dynamic"
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
 
-export const revalidate = 300
+const BASE_URL = 'https://pvp.mcxssg.net'
+const HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15',
+  'Referer': BASE_URL,
+  'Accept': 'application/json',
+}
 
-export async function GET(_req: NextRequest) {
+function getYesterday() {
+  const d = new Date()
+  d.setDate(d.getDate() - 1)
+  return d.toISOString().split('T')[0]
+}
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const date = searchParams.get('date') ?? getYesterday()
+
   try {
-    const { data: latestDate } = await supabaseAdmin
-      .from('hero_stats')
-      .select('stat_date')
-      .eq('game_mode', '巅峰千强')
-      .order('stat_date', { ascending: false })
-      .limit(1)
-      .single()
-
-    if (!latestDate) {
-      return NextResponse.json({ success: true, data: { win_rate: [], pick_rate: [], ban_rate: [] } })
-    }
-
-    const base = supabaseAdmin
-      .from('hero_stats')
-      .select(`
-        hero_id, rank_no, win_rate, pick_rate, ban_rate, bp_rate, tier, meta_score,
-        heroes ( name, alias, avatar_url, roles )
-      `)
-      .eq('stat_date', latestDate.stat_date)
-      .eq('game_mode', '巅峰千强')
-
-    const flatten = (rows: Record<string, unknown>[]) =>
-      rows.map(row => {
-        const h = row.heroes as Record<string, unknown> | null
-        return { ...row, heroes: undefined, name: h?.name, avatar_url: h?.avatar_url, roles: h?.roles }
-      })
-
-    const [byWin, byPick, byBan] = await Promise.all([
-      base.order('win_rate', { ascending: false }).limit(10),
-      base.order('pick_rate', { ascending: false }).limit(10),
-      base.order('ban_rate', { ascending: false }).limit(10),
+    const [stats, tierData] = await Promise.all([
+      fetch(`${BASE_URL}/api/herostats?date=${date}&gameMode=1`, { headers: HEADERS, next: { revalidate: 3600 } }).then(r => r.json()),
+      fetch(`${BASE_URL}/api/global/tier?date=${date}&gameMode=1`, { headers: HEADERS, next: { revalidate: 3600 } }).then(r => r.json()),
     ])
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        win_rate: flatten(byWin.data ?? []),
-        pick_rate: flatten(byPick.data ?? []),
-        ban_rate: flatten(byBan.data ?? []),
-      },
-      meta: { date: latestDate.stat_date },
+    const statsMap = new Map(stats.map((h: { heroId: number }) => [h.heroId, h]))
+    const tierMap = new Map((tierData.tiers ?? []).map((t: { heroId: number }) => [t.heroId, t]))
+
+    const heroes = (tierData.tiers ?? []).map((t: {
+      heroId: number; heroName: string; avatarUrl: string; role: string
+      finalNormalizedTierScore: number; trueHeroPowerInRole: number
+      tierInRole: string; rankInRole: number; lowPick: boolean; highBan: boolean
+    }) => {
+      const s = (statsMap.get(t.heroId) ?? {}) as {
+        winRate?: number; pickRate?: number; banRate?: number; roles?: string; update?: boolean
+      }
+      const roles = typeof s.roles === 'string'
+        ? s.roles.split('/').map((r: string) => r.trim())
+        : [t.role?.split('/')[0] ?? '']
+      return {
+        hero_id: String(t.heroId),
+        name: t.heroName,
+        avatar_url: t.avatarUrl,
+        roles,
+        is_new: s.update ?? false,
+        win_rate: s.winRate ?? null,
+        pick_rate: s.pickRate ?? null,
+        ban_rate: s.banRate ?? null,
+        tier: t.tierInRole,
+        tier_score: t.finalNormalizedTierScore,
+        hero_power: t.trueHeroPowerInRole,
+        high_ban: t.highBan,
+        low_pick: t.lowPick,
+        rank_in_role: t.rankInRole,
+        role_for_tier: t.role,
+        meta_score: t.finalNormalizedTierScore,
+      }
     })
+
+    // 按 tier_score 排序
+    heroes.sort((a: { tier_score: number }, b: { tier_score: number }) => b.tier_score - a.tier_score)
+
+    return NextResponse.json({ success: true, data: heroes, meta: { total: heroes.length, date } })
   } catch (err) {
-    console.error('[API /rank]', err)
-    return NextResponse.json({ success: false, error: 'Failed to fetch ranks' }, { status: 500 })
+    return NextResponse.json({ success: false, error: String(err) }, { status: 500 })
   }
 }

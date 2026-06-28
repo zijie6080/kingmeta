@@ -32,11 +32,18 @@ export interface HeroStat {
   medal_rate: number
   tier: TierLevel
   meta_score: number
+  // 原站新增字段
+  tier_score: number          // finalNormalizedTierScore (0-100，原站算法)
+  hero_power: number          // trueHeroPowerInRole
+  high_ban: boolean
+  low_pick: boolean
+  rank_in_role: number
+  role_for_tier: string
   game_mode: string
   version: string
 }
 
-// Flattened row from Supabase join query
+// Flattened row from API
 export type HeroWithStats = Record<string, unknown> & {
   hero_id: string
   name: string
@@ -50,15 +57,15 @@ export type HeroWithStats = Record<string, unknown> & {
   pick_rate?: number
   ban_rate?: number
   bp_rate?: number
-  team_rate?: number
-  dmg_share?: number
-  dmg_per_min?: number
-  tank_share?: number
-  tank_per_min?: number
-  gold_per_min?: number
-  medal_rate?: number
-  tier?: TierLevel
+  tier?: TierLevel | string
   meta_score?: number
+  // 原站字段
+  tier_score?: number
+  hero_power?: number
+  high_ban?: boolean
+  low_pick?: boolean
+  rank_in_role?: number
+  role_for_tier?: string
   game_mode?: string
   stat_date?: string
 }
@@ -100,6 +107,7 @@ export interface ApiResponse<T> {
     total?: number
     date?: string
     version?: string
+    source?: string
   }
 }
 

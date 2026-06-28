@@ -8,18 +8,18 @@ import type { TierLevel } from '@/types'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 
-type SortKey = 'win_rate' | 'pick_rate' | 'ban_rate' | 'bp_rate' | 'meta_score'
+type SortKey = 'win_rate' | 'pick_rate' | 'ban_rate' | 'bp_rate' | 'tier_score'
 
 const COLS: { key: SortKey; label: string; mobileHide?: boolean }[] = [
   { key: 'win_rate', label: '胜率' },
   { key: 'pick_rate', label: '出场率' },
   { key: 'ban_rate', label: '禁用率' },
   { key: 'bp_rate', label: 'BP率', mobileHide: true },
-  { key: 'meta_score', label: '评分', mobileHide: true },
+  { key: 'tier_score', label: '梯度分', mobileHide: true },
 ]
 
 export default function HeroTable({ heroes }: { heroes: HeroWithStats[] }) {
-  const [sortKey, setSortKey] = useState<SortKey>('win_rate')
+  const [sortKey, setSortKey] = useState<SortKey>('tier_score')
   const [asc, setAsc] = useState(false)
 
   const sorted = [...heroes].sort((a, b) => {
@@ -75,7 +75,12 @@ export default function HeroTable({ heroes }: { heroes: HeroWithStats[] }) {
                   className="w-8 h-8 rounded-full object-cover ring-1 ring-white/10 shrink-0"
                 />
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-200 group-hover:text-white truncate">{h.name}</div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm font-medium text-gray-200 group-hover:text-white truncate">{h.name}</span>
+                    {/* 高禁用/低出场标签 */}
+                    {h.high_ban && <span className="text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 px-1 py-0.5 rounded shrink-0">必Ban</span>}
+                    {h.low_pick && <span className="text-[9px] bg-sky-500/20 text-sky-400 border border-sky-500/30 px-1 py-0.5 rounded shrink-0">低出场</span>}
+                  </div>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     {h.tier && <TierBadge tier={h.tier as TierLevel} size="sm" />}
                     <span className="text-[10px] text-gray-600 truncate hidden sm:block">
@@ -97,8 +102,8 @@ export default function HeroTable({ heroes }: { heroes: HeroWithStats[] }) {
               <span className="text-sm text-gray-400 text-right hidden md:block">
                 {formatPercent(h.bp_rate)}
               </span>
-              <span className="text-sm text-yellow-400 text-right hidden md:block">
-                {h.meta_score ? h.meta_score.toFixed(1) : '--'}
+              <span className="text-sm text-yellow-400 text-right hidden md:block font-bold">
+                {h.tier_score != null ? (h.tier_score as number).toFixed(1) : '--'}
               </span>
             </Link>
           )
